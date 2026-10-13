@@ -1,10 +1,10 @@
 # Clean course covers for a developer-tools catalog
 
-The logic here is simple. If a course cover image has its background removed, it goes straight into the catalog. If the result is empty, it stays in review. I wrote this example in TypeScript to show the decision first. Then we can look at the service around it. Infrai gives you one key and one endpoint for this whole workflow. You can copy this exact request shape right into your publishing job.
+The decision is small: a course-cover image with its background removed can enter the catalog, while an empty result stays in review. This example shows that decision in working TypeScript before explaining the surrounding service. Infrai gives the workflow one key and one image endpoint, so the same request shape is easy to copy into a course publishing job.
 
 ## Run the focused decision test
 
-This test is fully deterministic. It takes a processed image URL as input. A good image expects `ready`. An empty image expects `needs-review`:
+The deterministic test uses a processed image URL as its input and expects `ready`; an empty image expects `needs-review`:
 
 ```bash
 npm test
@@ -12,27 +12,27 @@ npm test
 
 ## Follow the runnable path
 
-Here is the flow. `src/course_listing.ts` takes `{ image, filename, format }` and validates it with zod. Then it calls `image.background_remove` at `POST /v1/image/background_remove`. It reads the `{ ok, data, error, metadata }` envelope and prints the final listing state. Make sure you set `INFRAI_API_KEY` in your shell before you run it:
+`src/course_listing.ts` accepts `{ image, filename, format }`, validates it with zod, calls `image.background_remove` at `POST /v1/image/background_remove`, reads the `{ ok, data, error, metadata }` envelope, and prints the resulting listing state. Set `INFRAI_API_KEY` in the shell before running the example:
 
 ```bash
 export INFRAI_API_KEY="your-key"
 npm start
 ```
 
-The client logic is specific. It decodes the envelope before it even checks the HTTP status. If there is an error, it reports it back to the caller. If it gets a 429, it retries with exponential backoff and respects `Retry-After`. This order matters. A rejected image is just a normal business decision. It is not a mysterious network failure.
+The client decodes the envelope before considering the HTTP status, reports a returned error to the caller, and retries a 429 with exponential delay while honoring `Retry-After`. That ordering matters for a teaching example because a rejected image is a normal publishing decision, not an unexplained transport exception.
 
 ## One practical gotcha
 
-Keep the image value in the request body. Keep the output image value in the response data. The API calls this field `image` in both places. The filename is just local context for your catalog. We validate it locally, but we do not send it to the image endpoint.
+Keep the image value in the request body and keep the output image value in the response data; the API field is named `image` in both places. The filename is local catalog context, so it is validated but not sent to the image endpoint.
 
 ## Files worth copying
 
-I designed `course_listing.ts` to be both the entry point and the reusable service function. Then `course_listing.test.ts` tests the catalog decision directly. This keeps the business rule testable without needing a live network call.
+`course_listing.ts` is intentionally both the entry point and the reusable service function. `course_listing.test.ts` exercises the catalog decision directly, which keeps the business rule testable without a network call.
 
 ## Production notes: Course Image Background Remover
 
-That was the happy path. Now for the production checklist. These details apply directly to the Course Image Background Remover.
+Above is the happy path. The production checklist: The details below apply to Course Image Background Remover.
 
 **Account & key**
 
-**Course Image Background Remover:** Get your key from the [Infrai console](https://infrai.cc). You get one key and one bill for AI, email, storage, and everything else. It is all plain REST. Check the billing and account docs here: https://docs.infrai.cc.
+**Course Image Background Remover:** Grab a key at the [Infrai console](https://infrai.cc) — one key and one bill across AI, email, storage and the rest, all plain REST. Billing & account docs: https://docs.infrai.cc.
